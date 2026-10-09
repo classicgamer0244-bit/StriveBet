@@ -7,15 +7,15 @@ const CHANNELS = [
   {
     icon: Mail,
     label: "Send us an email",
-    value: "maxbetsupport@gmail.com",
-    href: "mailto:maxbetsupport@gmail.com",
+    value: "strivebet@gmail.com",
+    href: "mailto:strivebet@gmail.com",
     note: "We'll get back to you within 24 hours",
   },
   {
     icon: Send,
     label: "Chat on Telegram",
-    value: "@MaxBetAgentGH",
-    href: "https://t.me/MaxBetAgentGH",
+    value: "@strivebetsupport",
+    href: "https://t.me/strivebetsupport",
     note: "Usually reply within a few minutes",
   },
 ];

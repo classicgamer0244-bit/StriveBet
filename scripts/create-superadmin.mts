@@ -80,9 +80,14 @@ async function main() {
 
     const displayName = (await ask("Display name (e.g. StiveBet HQ): ")) || "StiveBet HQ";
     const email = (await ask("Email: ")).toLowerCase();
-    const rawPhone = await ask("Phone (used to log in, e.g. 0244123456): ");
+    const rawPhone = (await ask("Phone, local format (used to log in, e.g. 0244123456): ")).replace(/\D/g, "");
+    // The login form adds +233 itself and accepts at most 10 digits, so only a
+    // local-format number can ever be typed in to match.
+    if (rawPhone.length < 9 || rawPhone.length > 10) {
+      throw new Error("Enter a local number of 9-10 digits like 0244123456 (no +country code).");
+    }
     const phone = rawPhone.startsWith("0") ? rawPhone.slice(1) : rawPhone; // stored without the leading 0, like every account
-    if (!email.includes("@") || phone.length < 6) throw new Error("Please enter a valid email and phone number.");
+    if (!email.includes("@")) throw new Error("Please enter a valid email.");
 
     const password = await askHidden("Password (min 10 characters, hidden): ");
     if (password.length < 10) throw new Error("Password must be at least 10 characters.");

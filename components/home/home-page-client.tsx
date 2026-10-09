@@ -8,6 +8,7 @@ import { MobileFeaturedMatchCard } from "@/components/home/mobile-featured-match
 import { HighlightsTable } from "@/components/fixtures/highlights-table";
 import { useUpcomingFixtures } from "@/hooks/use-fixtures";
 import { isRealFixtureId } from "@/lib/fixture-id";
+import { fetchIlotbetMatchDetail } from "@/lib/ilotbet/browser-fetch";
 import type { Fixture } from "@/types";
 
 const SIMULATED_LEAGUE_PATTERN = /simulated|\bsrl\b/i;
@@ -42,12 +43,17 @@ export function FeaturedFixtures() {
     if (toFetch.length === 0) return;
     toFetch.forEach((f) => fetchedIds.current.add(f.id));
     Promise.all(
-      toFetch.map((f) =>
-        fetch(`/api/fixtures/${f.id}`, { cache: "no-store" })
-          .then((r) => r.ok ? r.json() : null)
-          .then((data) => data?.fixture ? { id: f.id, home: data.fixture.homeTeam.logoUrl, away: data.fixture.awayTeam.logoUrl } : null)
-          .catch(() => null)
-      )
+      toFetch.map(async (f) => {
+        const fromServer = await fetch(`/api/fixtures/${f.id}`, { cache: "no-store" })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((data) => (data?.fixture as Fixture | undefined))
+          .catch(() => undefined);
+        // The server's cache can be empty or behind (e.g. while its upstream
+        // sync is blocked) — ilotbet's detail endpoint is CORS-open, so ask it
+        // straight from the browser before giving up on the logos.
+        const fixture = fromServer?.homeTeam.logoUrl ? fromServer : await fetchIlotbetMatchDetail(f.id).catch(() => undefined);
+        return fixture ? { id: f.id, home: fixture.homeTeam.logoUrl, away: fixture.awayTeam.logoUrl } : null;
+      })
     ).then((results) => {
       const updates: Record<string, { home?: string; away?: string }> = {};
       for (const r of results) {

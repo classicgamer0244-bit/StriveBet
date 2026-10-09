@@ -11,7 +11,7 @@ import { creditSuccessfulDeposit, markFailedDeposit } from "./credit";
 
 /**
  * Deep reconciliation against the gateway — the fix for "the customer paid,
- * Flutterwave shows it, but MaxBet never credited them".
+ * Flutterwave shows it, but StriveBet never credited them".
  *
  * ## Why the pending-deposit sweep wasn't enough
  *

@@ -27,7 +27,7 @@ const apiKey = process.env.CLOUDINARY_API_KEY!;
 const apiSecret = process.env.CLOUDINARY_API_SECRET!;
 
 const timestamp = Math.floor(Date.now() / 1000);
-const folder = "maxbet/team-logos";
+const folder = "strivebet/team-logos";
 const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;
 const signature = crypto.createHash("sha1").update(`${paramsToSign}${apiSecret}`).digest("hex");
 

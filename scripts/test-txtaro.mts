@@ -36,8 +36,8 @@ const res = await fetch("https://sms.txtaro.com/api/v1/sms/send", {
   },
   body: JSON.stringify({
     to: phone,
-    message: "MaxBet: this is a test message confirming the new SMS provider is working.",
-    sender_id: process.env.TXTARO_SENDER_ID ?? "MaxBet",
+    message: "StriveBet: this is a test message confirming the new SMS provider is working.",
+    sender_id: process.env.TXTARO_SENDER_ID ?? "StriveBet",
   }),
 });
 

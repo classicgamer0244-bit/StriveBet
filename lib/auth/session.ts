@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { signSession, verifySessionToken, type SessionPayload } from "@/lib/auth/jwt";
 import type { AdminAccount, AdminRole, User } from "@prisma/client";
 
-const COOKIE_NAME = "maxbet_session";
+const COOKIE_NAME = "strivebet_session";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
 export async function setSessionCookie(payload: SessionPayload): Promise<void> {

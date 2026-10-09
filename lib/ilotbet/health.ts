@@ -8,7 +8,7 @@ import { sportWhere } from "./cache/read";
  *
  * Listings and settlement come from different places. Players browse real
  * fixtures via lib/ilotbet/browser-fetch.ts — straight from their own browser to
- * ilotbet, no MaxBet server involved — while settlement can only ever grade what
+ * ilotbet, no StriveBet server involved — while settlement can only ever grade what
  * the SERVER managed to cache in IlotbetFixtureCache. So when the server loses
  * upstream access the site keeps looking perfectly healthy and keeps taking real
  * bets, and every one of them is ungradeable the moment it's placed.

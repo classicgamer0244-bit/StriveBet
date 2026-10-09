@@ -5,7 +5,7 @@ import { BROWSABLE_SPORTS, ILOTBET_SPORT_IDS } from "./sports";
 import type { Fixture, SportSlug } from "@/types";
 
 /**
- * Direct-from-the-browser ilotbet fetches — no MaxBet backend involved at
+ * Direct-from-the-browser ilotbet fetches — no StriveBet backend involved at
  * all. ilotbet's endpoints are public, unauthenticated, CORS-open
  * (access-control-allow-origin: *, confirmed directly) and already cache on
  * their own side, so this deliberately skips the pacing/backoff machinery

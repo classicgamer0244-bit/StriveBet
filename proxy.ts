@@ -13,7 +13,7 @@ export async function proxy(request: NextRequest) {
   const needsAdminSession = pathname.startsWith("/api/admin") || pathname.startsWith("/api/superadmin");
   if (!needsAdminSession) return NextResponse.next();
 
-  const token = request.cookies.get("maxbet_session")?.value;
+  const token = request.cookies.get("strivebet_session")?.value;
   const payload = token ? await verifySessionToken(token) : null;
   if (!payload || payload.kind !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

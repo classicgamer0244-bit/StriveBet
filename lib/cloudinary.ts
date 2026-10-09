@@ -24,7 +24,7 @@ export function isCloudinaryConfigured(): boolean {
 export async function uploadImage(buffer: Buffer, filename: string): Promise<string> {
   const { cloudName, apiKey, apiSecret } = requireConfig();
   const timestamp = Math.floor(Date.now() / 1000);
-  const folder = "maxbet/team-logos";
+  const folder = "strivebet/team-logos";
   // Cloudinary's signature: sort the params to be signed alphabetically,
   // join as key=value&key=value, append the api secret directly, SHA-1 hash.
   const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;

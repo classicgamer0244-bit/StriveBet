@@ -1,4 +1,4 @@
-// MaxBet backend schema — MongoDB via Prisma ORM v6 (Prisma 7 has no MongoDB
+// StriveBet backend schema — MongoDB via Prisma ORM v6 (Prisma 7 has no MongoDB
 // connector; see .agents/skills/prisma-mongodb-upgrade at the time this was
 // written). Classic v6 Mongo shape: url read directly in the datasource
 // block, no prisma.config.ts, `prisma db push` instead of `migrate dev`

@@ -1,7 +1,7 @@
 /**
  * Payments via Flutterwave — direct server-side integration.
  *
- * MaxBet now holds its own Flutterwave credentials. All charges, status
+ * StriveBet now holds its own Flutterwave credentials. All charges, status
  * checks, and webhook verification happen here, with no intermediary service.
  *
  * ## Env vars required

@@ -58,7 +58,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
     setReferralCodeState(code);
     if (code && typeof window !== "undefined") {
       try {
-        window.sessionStorage.setItem("maxbet_ref", code);
+        window.sessionStorage.setItem("strivebet_ref", code);
       } catch {
         // sessionStorage unavailable — referral simply won't survive a reload.
       }

@@ -21,7 +21,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://maxbet.com.gh";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://strivebet.vercel.app";
 const DESCRIPTION = "Ghana's #1 sports betting platform. Bet on football, basketball, tennis and more with live odds, instant payouts and the best markets.";
 
 export const metadata: Metadata = {

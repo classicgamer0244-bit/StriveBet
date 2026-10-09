@@ -1,7 +1,7 @@
 import { customAlphabet } from "nanoid";
 import { db } from "@/lib/db";
 
-const PREFIX = "MX";
+const PREFIX = "ST";
 // No ambiguous chars (no I/O/0/1).
 const generateSuffix = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 6);
 

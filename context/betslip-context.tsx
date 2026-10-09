@@ -48,7 +48,7 @@ export interface BetslipContextValue {
 
 export const BetslipContext = createContext<BetslipContextValue | null>(null);
 
-const STORAGE_KEY = "maxbet_betslip_v1";
+const STORAGE_KEY = "strivebet_betslip_v1";
 /** Matches the rest of the app's direct-ilotbet-poll cadence
  * (hooks/use-fixtures.ts's LIVE_POLL_INTERVAL_MS) — the betslip's odds
  * should feel exactly as fresh as everywhere else, not staler or fresher. */

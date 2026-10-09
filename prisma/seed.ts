@@ -11,11 +11,11 @@ async function main() {
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
 
   const superadmin = await db.adminAccount.upsert({
-    where: { email: "hq@maxbet.example" },
+    where: { email: "hq@strivebet.example" },
     update: {},
     create: {
-      displayName: "MaxBet HQ",
-      email: "hq@maxbet.example",
+      displayName: "StriveBet HQ",
+      email: "hq@strivebet.example",
       phone: "0200000000",
       passwordHash,
       referralCode: "H9K2QP",

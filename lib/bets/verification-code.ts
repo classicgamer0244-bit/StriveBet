@@ -1,8 +1,8 @@
 import { customAlphabet } from "nanoid";
 import { db } from "@/lib/db";
 
-// "GH" (Ghana) + "MX" (MaxBet) + 12 alphanumeric chars, e.g. "GHMXAB12CD34EF56".
-const PREFIX = "GHMX";
+// "GH" (Ghana) + "ST" (StriveBet) + 12 alphanumeric chars, e.g. "GHSTAB12CD34EF56".
+const PREFIX = "GHST";
 // No ambiguous chars (no I/O/0/1) — same alphabet as lib/booking/code.ts.
 const generateSuffix = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 12);
 

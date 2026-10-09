@@ -66,7 +66,7 @@ export async function POST(request: Request) {
       // that authorizes by id would create a SECOND charge for the same deposit.
       providerRef: txn.gatewayTransactionId,
       customer: {
-        email: account.email?.trim() || `player-${account.id}@maxbet.app`,
+        email: account.email?.trim() || `player-${account.id}@strivebet.app`,
         name: `${account.firstName} ${account.lastName}`.trim(),
       },
       metadata: { account_id: account.id, account_kind: txn.accountKind },

@@ -15,7 +15,7 @@ import type { Fixture, SportSlug, Selection } from "@/types";
  * - Admin fixtures: ours to push. Server-Sent Events (app/api/realtime/
  *   fixtures*) stream updates from our own backend, same as always.
  * - Real fixtures: fetched DIRECTLY from ilotbet.com, straight from the
- *   browser (lib/ilotbet/browser-fetch.ts), on a plain interval — no MaxBet
+ *   browser (lib/ilotbet/browser-fetch.ts), on a plain interval — no StriveBet
  *   backend involved in keeping these fresh. This is deliberate: ilotbet's
  *   endpoints are public, CORS-open, and cache on their own side, and going
  *   straight to them avoids this app's own cache ever being a stale
@@ -155,7 +155,7 @@ function useFixturesOnce(url: string, { fetchReal, realPollIntervalMs }: Fixture
   }, [url]);
 
   // Real fixtures: fetched directly from ilotbet.com, from the browser, on
-  // a plain interval — no MaxBet backend involved in this refresh.
+  // a plain interval — no StriveBet backend involved in this refresh.
   // The first fetch is handled by the initial effect above; this just keeps
   // things fresh on the polling interval.
   useEffect(() => {

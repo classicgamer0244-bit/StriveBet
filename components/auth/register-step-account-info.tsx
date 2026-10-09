@@ -112,12 +112,12 @@ export function RegisterStepAccountInfo({
 
       <div>
         <label className="mb-1.5 block text-sm font-medium text-foreground">
-          Max ID <span className="font-normal text-muted-foreground">(optional)</span>
+          Strive ID <span className="font-normal text-muted-foreground">(optional)</span>
         </label>
         <Input
           value={referralCode}
           onChange={(e) => setReferralCode(e.target.value)}
-          placeholder="Enter Max ID"
+          placeholder="Enter Strive ID"
           readOnly={referralPrefilled}
           className={referralPrefilled ? "bg-muted text-muted-foreground" : ""}
         />

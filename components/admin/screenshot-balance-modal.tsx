@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Camera, Check, RefreshCw, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,12 @@ export function ScreenshotBalanceModal({
     currentBalance > 0 ? String(currentBalance) : "50000"
   );
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setAmountStr(currentBalance > 0 ? String(currentBalance) : "50000");
+    }
+  }, [open, currentBalance]);
 
   const parsedAmount = parseFloat(amountStr) || 0;
 

@@ -107,7 +107,7 @@ export function Header() {
               >
                 <Search className="size-4" />
               </button>
-              <ThemeToggleButton />
+              <ThemeToggleButton className="hidden lg:flex" />
               {authLoading ? <AuthAreaSkeleton /> : isLoggedIn ? <LoggedInAuthArea /> : <LoggedOutAuthArea />}
             </div>
           </div>

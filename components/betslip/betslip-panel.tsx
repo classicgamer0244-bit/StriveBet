@@ -22,7 +22,7 @@ async function readJson(res: Response) {
 
 export function BetslipPanel() {
   const { selectionList, count, stake, setStake, totalOdds, potentialWinnings, mode, clearAll } = useBetslip();
-  const { player, refreshBalance } = useAuth();
+  const { player, refreshBalance, applyPushedBalance } = useAuth();
   const { openLogin } = useUI();
   const [isBusy, setIsBusy] = useState(false);
   const [bookingInfo, setBookingInfo] = useState<BookingSuccessInfo | null>(null);
@@ -62,6 +62,9 @@ export function BetslipPanel() {
       toast.success(`${mode === "SIM" ? "Simulated bet" : "Bet"} placed: ${CURRENCY} ${stake.toFixed(2)} on ${count} selection${count === 1 ? "" : "s"}.`);
       clearAll();
       setStake(0);
+      if (typeof data?.balance === "number") {
+        applyPushedBalance(data.balance);
+      }
       await refreshBalance();
       window.dispatchEvent(new Event("bets:placed"));
     } finally {

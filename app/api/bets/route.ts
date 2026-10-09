@@ -5,7 +5,7 @@ import { requirePlayerAccount } from "@/lib/auth/session";
 import { resolveSelections } from "@/lib/bets/resolve-selections";
 import { serializeBet } from "@/lib/bets/serialize";
 import { getMultiBonusPercent } from "@/lib/betslip-labels";
-import { toMinor } from "@/lib/money";
+import { toMinor, fromMinor } from "@/lib/money";
 import { decrementBalanceIfSufficient, toAccountKind } from "@/lib/accounts/balance";
 import { tickAdminFixturesIfDue } from "@/lib/simulation/tick";
 import { nowMs } from "@/lib/id";
@@ -125,7 +125,8 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ bet: serializeBet(bet) }, { status: 201 });
+  const remainingBalanceMinor = Math.max(0, account.balanceMinor - Number(stakeMinor));
+  return NextResponse.json({ bet: serializeBet(bet), balance: fromMinor(remainingBalanceMinor) }, { status: 201 });
 }
 
 export async function GET(request: Request) {

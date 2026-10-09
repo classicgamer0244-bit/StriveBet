@@ -10,6 +10,8 @@ import { AccountDropdownMenu } from "./account-dropdown-menu";
 
 import { ScreenshotBalanceModal } from "@/components/admin/screenshot-balance-modal";
 
+import { MobileHeaderMenu } from "./mobile-header-menu";
+
 export function LoggedInAuthArea() {
   const { player, admin, balanceVisible, toggleBalanceVisible, refreshBalance } = useAuth();
   const [spinning, setSpinning] = useState(false);
@@ -31,29 +33,18 @@ export function LoggedInAuthArea() {
   return (
     <>
       <div className="flex items-center gap-2 text-white">
-        {/* Mobile: compact balance pill + Deposit button */}
-        <div className="flex items-center gap-2 lg:hidden">
-          {dashboardHref && (
-            <Link
-              href={dashboardHref}
-              aria-label="Admin dashboard"
-              className="flex size-8 items-center justify-center rounded-full bg-volt text-navy"
-            >
-              <LayoutDashboard className="size-4" />
-            </Link>
-          )}
+        {/* Mobile: clean balance pill + Three Dots menu (only in phone view) */}
+        <div className="flex items-center gap-1.5 lg:hidden">
           <div
-            onClick={() => admin?.role === "admin" && setScreenshotModalOpen(true)}
-            className={cn(
-              "flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 pr-2.5 pl-1",
-              admin?.role === "admin" && "cursor-pointer"
-            )}
+            onClick={() => setScreenshotModalOpen(true)}
+            className="flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-white/10 bg-white/5 pr-2.5 pl-1 transition-colors hover:border-volt/30"
           >
             <span className="flex size-6 items-center justify-center rounded-full bg-primary">
               <UserRound className="size-3.5" />
             </span>
             <span className="text-xs font-bold tabular-nums">{balanceLabel}</span>
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 toggleBalanceVisible();
@@ -64,24 +55,24 @@ export function LoggedInAuthArea() {
               {balanceVisible ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
             </button>
           </div>
-          <Button asChild size="sm" className="h-8 rounded-full bg-volt px-3.5 font-extrabold text-navy hover:bg-volt/85">
-            <Link href="/account/deposit">Deposit</Link>
-          </Button>
+
+          <MobileHeaderMenu
+            dashboardHref={dashboardHref}
+            onOpenScreenshotModal={() => setScreenshotModalOpen(true)}
+          />
         </div>
 
         {/* Desktop: balance pill + shortcuts + account dropdown */}
         <div className="hidden items-center gap-2 lg:flex">
           <div
-            onClick={() => admin?.role === "admin" && setScreenshotModalOpen(true)}
-            title={admin?.role === "admin" ? "Click to set custom screenshot balance" : undefined}
-            className={cn(
-              "flex h-9 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 transition-colors",
-              admin?.role === "admin" && "cursor-pointer hover:border-volt/40 hover:bg-white/10"
-            )}
+            onClick={() => setScreenshotModalOpen(true)}
+            title="Click to set custom screenshot balance"
+            className="flex h-9 cursor-pointer items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 transition-colors hover:border-volt/40 hover:bg-white/10"
           >
             <span className="text-[10px] font-bold tracking-wider text-white/40 uppercase">Balance</span>
             <span className="text-sm font-bold tabular-nums">{balanceLabel}</span>
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 toggleBalanceVisible();
@@ -92,6 +83,7 @@ export function LoggedInAuthArea() {
               {balanceVisible ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
             </button>
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 handleRefresh();
@@ -121,13 +113,11 @@ export function LoggedInAuthArea() {
       </div>
     </div>
 
-    {admin?.role === "admin" && (
-      <ScreenshotBalanceModal
-        open={screenshotModalOpen}
-        onOpenChange={setScreenshotModalOpen}
-        currentBalance={player?.balance ?? 0}
-      />
-    )}
+    <ScreenshotBalanceModal
+      open={screenshotModalOpen}
+      onOpenChange={setScreenshotModalOpen}
+      currentBalance={player?.balance ?? 0}
+    />
   </>
   );
 }

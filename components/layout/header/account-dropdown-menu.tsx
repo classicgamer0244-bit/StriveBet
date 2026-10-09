@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, LayoutDashboard, LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +14,8 @@ import { ACCOUNT_NAV } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
 
 export function AccountDropdownMenu() {
-  const { logout } = useAuth();
+  const { logout, admin } = useAuth();
+  const dashboardHref = admin ? (admin.role === "superadmin" ? "/superadmin" : "/admin") : null;
 
   return (
     <DropdownMenu>
@@ -25,6 +26,17 @@ export function AccountDropdownMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
+        {dashboardHref && (
+          <>
+            <DropdownMenuItem asChild>
+              <Link href={dashboardHref} className="font-semibold">
+                <LayoutDashboard className="size-4" />
+                Admin Dashboard
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         {ACCOUNT_NAV.map((item) => (
           <DropdownMenuItem key={item.href} asChild>
             <Link href={item.href}>{item.label}</Link>

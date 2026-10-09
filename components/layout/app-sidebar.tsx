@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { Flame, Gamepad2, Gift, Home, Radio, Trophy, Gem, BarChart3, ShieldCheck } from "lucide-react";
+import { Flame, Gamepad2, Gift, Home, Radio, Trophy, Gem, BarChart3, ShieldCheck, LayoutDashboard } from "lucide-react";
 import { toast } from "sonner";
 import { Logo, LogoMark } from "@/components/brand/logo";
 import { getSports } from "@/data/selectors";
 import { SPORT_ICONS } from "@/lib/sport-icons";
 import { useLiveFixtures } from "@/hooks/use-fixtures";
+import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
 const MAIN_LINKS = [
@@ -65,6 +66,9 @@ function SidebarSports({ compact }: { compact: boolean }) {
 export function AppSidebar({ compact }: { compact: boolean }) {
   const pathname = usePathname();
   const { fixtures: live } = useLiveFixtures();
+  const { admin } = useAuth();
+  // Staff (admin/superadmin) reach their dashboard from the sidebar and logo.
+  const dashboardHref = admin ? (admin.role === "superadmin" ? "/superadmin" : "/admin") : null;
 
   return (
     <aside
@@ -74,7 +78,7 @@ export function AppSidebar({ compact }: { compact: boolean }) {
       )}
     >
       <div className={cn("flex h-16 shrink-0 items-center", compact ? "justify-center" : "justify-center px-5 xl:justify-start")}>
-        <Link href="/" aria-label="StriveBet home">
+        <Link href={dashboardHref ?? "/"} aria-label={dashboardHref ? "StriveBet admin dashboard" : "StriveBet home"}>
           {compact ? (
             <LogoMark className="size-9" />
           ) : (
@@ -88,6 +92,21 @@ export function AppSidebar({ compact }: { compact: boolean }) {
 
       <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-3 pt-2 pb-4 [scrollbar-width:none]">
         <nav className="flex flex-col gap-0.5">
+          {dashboardHref && (
+            <Link
+              href={dashboardHref}
+              title="Admin Dashboard"
+              className={cn(
+                "group mb-2 flex items-center gap-3 rounded-xl bg-volt p-1.5 text-sm font-extrabold text-navy transition-opacity hover:opacity-90",
+                compact ? "justify-center" : "justify-center xl:justify-start"
+              )}
+            >
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-navy/10">
+                <LayoutDashboard className="size-4" />
+              </span>
+              <span className={cn("flex-1 truncate text-left", compact ? "hidden" : "hidden xl:block")}>Admin Dashboard</span>
+            </Link>
+          )}
           {MAIN_LINKS.map(({ label, href, icon: Icon, enabled }) => {
             const active = enabled && isActive(pathname, href);
             const content = (

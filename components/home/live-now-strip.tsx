@@ -37,7 +37,7 @@ function LiveMatchCard({ fixture }: { fixture: Fixture }) {
             { team: fixture.awayTeam, goals: score?.away },
           ].map(({ team, goals }) => (
             <div key={team.name} className="flex items-center gap-2.5">
-              <TeamCrest team={team} containerClassName="size-7 bg-white/10" imageSize={22} textClassName="text-[9px] text-white/70" />
+              <TeamCrest team={team} containerClassName="size-7" imageSize={24} textClassName="text-[9px] text-white/70" />
               <span className="min-w-0 flex-1 truncate text-sm font-semibold">{team.name}</span>
               <span className="w-6 text-right text-lg font-extrabold text-volt tabular-nums">{goals ?? "-"}</span>
             </div>

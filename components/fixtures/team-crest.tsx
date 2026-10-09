@@ -27,15 +27,19 @@ export function TeamCrest({
   const [failed, setFailed] = useState(false);
 
   if (team.logoUrl && !failed) {
+    const cleanClassName = containerClassName
+      ? containerClassName.replace(/\b(bg-[^\s]+|backdrop-[^\s]+)\b/g, "").trim()
+      : "";
+
     return (
-      <span className={cn("flex shrink-0 items-center justify-center", containerClassName)}>
+      <span className={cn("flex shrink-0 items-center justify-center !bg-transparent", cleanClassName)}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={proxyUrl(team.logoUrl)}
           alt={team.name}
           width={imageSize}
           height={imageSize}
-          className="size-full object-contain"
+          className="size-full object-contain !bg-transparent"
           onError={() => setFailed(true)}
         />
       </span>

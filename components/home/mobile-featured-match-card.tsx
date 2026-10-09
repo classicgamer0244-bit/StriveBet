@@ -35,8 +35,8 @@ export function MobileFeaturedMatchCard({ fixture }: { fixture: Fixture }) {
 
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
-            <span className="flex size-14 items-center justify-center rounded-2xl bg-muted/70">
-              <TeamCrest team={fixture.homeTeam} containerClassName="size-10" imageSize={36} textClassName="text-xs" fallback="skeleton" />
+            <span className="flex size-14 items-center justify-center">
+              <TeamCrest team={fixture.homeTeam} containerClassName="size-12" imageSize={44} textClassName="text-xs" fallback="skeleton" />
             </span>
             <span className="w-full truncate text-center text-xs font-bold text-foreground">{fixture.homeTeam.name}</span>
           </div>
@@ -57,8 +57,8 @@ export function MobileFeaturedMatchCard({ fixture }: { fixture: Fixture }) {
             )}
           </div>
           <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
-            <span className="flex size-14 items-center justify-center rounded-2xl bg-muted/70">
-              <TeamCrest team={fixture.awayTeam} containerClassName="size-10" imageSize={36} textClassName="text-xs" fallback="skeleton" />
+            <span className="flex size-14 items-center justify-center">
+              <TeamCrest team={fixture.awayTeam} containerClassName="size-12" imageSize={44} textClassName="text-xs" fallback="skeleton" />
             </span>
             <span className="w-full truncate text-center text-xs font-bold text-foreground">{fixture.awayTeam.name}</span>
           </div>

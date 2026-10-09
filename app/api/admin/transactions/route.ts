@@ -13,17 +13,45 @@ export async function GET(request: Request) {
   const { page, pageSize, search, status, from, to } = parsePageParams(searchParams);
   const type = searchParams.get("type");
 
-  const where: Prisma.TransactionWhereInput = { referringAdminId: admin.id };
-  if (type === "deposit") where.type = "DEPOSIT";
-  else if (type === "withdrawal") where.type = "WITHDRAWAL";
+  const baseFilter: Prisma.TransactionWhereInput =
+    type === "settlement"
+      ? {
+          accountId: admin.id,
+          accountKind: "ADMIN",
+          status: "SUCCESS",
+          OR: [
+            { method: { contains: "settlement", mode: "insensitive" } },
+            { method: { contains: "Superadmin", mode: "insensitive" } },
+            { performedByAdminId: { not: null } },
+            { note: { contains: "settlement", mode: "insensitive" } },
+          ],
+        }
+      : {
+          OR: [{ referringAdminId: admin.id }, { accountId: admin.id, accountKind: "ADMIN" }],
+        };
+
+  const andFilters: Prisma.TransactionWhereInput[] = [baseFilter];
+
+  if (type === "deposit") andFilters.push({ type: "DEPOSIT" });
+  else if (type === "withdrawal") andFilters.push({ type: "WITHDRAWAL" });
+
   if (status === "pending" || status === "success" || status === "failed") {
-    where.status = status.toUpperCase() as "PENDING" | "SUCCESS" | "FAILED";
+    andFilters.push({ status: status.toUpperCase() as "PENDING" | "SUCCESS" | "FAILED" });
   }
+
   if (search) {
-    where.OR = [{ phone: { contains: search, mode: "insensitive" } }, { reference: { contains: search, mode: "insensitive" } }];
+    andFilters.push({
+      OR: [
+        { phone: { contains: search, mode: "insensitive" } },
+        { reference: { contains: search, mode: "insensitive" } },
+      ],
+    });
   }
+
   const createdAt = dateRangeFilter(from, to);
-  if (createdAt) where.createdAt = createdAt;
+  if (createdAt) andFilters.push({ createdAt });
+
+  const where: Prisma.TransactionWhereInput = { AND: andFilters };
 
   const result = await paginate({
     page,

@@ -10,7 +10,15 @@ export async function GET() {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  const [myUsersCount, depositsAgg, depositsTodayAgg, bets, myMatches] = await Promise.all([
+  const [
+    myUsersCount,
+    depositsAgg,
+    depositsTodayAgg,
+    bets,
+    myMatches,
+    settlementsAgg,
+    recentSettlements,
+  ] = await Promise.all([
     db.user.count({ where: { referredById: admin.id } }),
     // SUCCESS only — a PENDING or FAILED deposit never actually landed in the
     // player's balance, so counting it here overstated "their deposits".
@@ -46,6 +54,37 @@ export async function GET() {
       _count: { _all: true },
     }),
     db.adminFixture.findMany({ where: { ownerAdminId: admin.id } }),
+    // Real settlements of money received from Superadmin
+    db.transaction.aggregate({
+      where: {
+        accountId: admin.id,
+        accountKind: "ADMIN",
+        status: "SUCCESS",
+        OR: [
+          { method: { contains: "settlement", mode: "insensitive" } },
+          { method: { contains: "Superadmin", mode: "insensitive" } },
+          { performedByAdminId: { not: null } },
+          { note: { contains: "settlement", mode: "insensitive" } },
+        ],
+      },
+      _sum: { amountMinor: true },
+      _count: { _all: true },
+    }),
+    db.transaction.findMany({
+      where: {
+        accountId: admin.id,
+        accountKind: "ADMIN",
+        status: "SUCCESS",
+        OR: [
+          { method: { contains: "settlement", mode: "insensitive" } },
+          { method: { contains: "Superadmin", mode: "insensitive" } },
+          { performedByAdminId: { not: null } },
+          { note: { contains: "settlement", mode: "insensitive" } },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }),
   ]);
 
   const liveCount = myMatches.filter((f) => f.status === "LIVE" || f.status === "HALFTIME").length;
@@ -61,5 +100,17 @@ export async function GET() {
     betsCount: bets._count._all,
     myMatchesCount: myMatches.length,
     liveCount,
+    settledTotal: fromMinor(settlementsAgg._sum.amountMinor ?? 0),
+    settledCount: settlementsAgg._count._all,
+    recentSettlements: recentSettlements.map((s) => ({
+      id: s.id,
+      amount: fromMinor(s.amountMinor),
+      reference: s.reference,
+      method: s.method ?? "Superadmin settlement",
+      note: s.note ?? (s.method?.includes("credit") ? "Balance credit" : "Commission payout"),
+      createdAt: s.createdAt.toISOString(),
+      status: s.status,
+    })),
+    balance: fromMinor(admin.balanceMinor),
   });
 }

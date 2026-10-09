@@ -20,7 +20,7 @@ export async function sendSms(internationalPhone: string, message: string): Prom
     method: "POST",
     headers: { "api-key": requireApiKey(), "Content-Type": "application/json" },
     body: JSON.stringify({
-      sender: process.env.ARKESEL_SENDER_ID ?? "StiveBet",
+      sender: process.env.ARKESEL_SENDER_ID ?? "StriveBet",
       message,
       recipients: [internationalPhone],
     }),

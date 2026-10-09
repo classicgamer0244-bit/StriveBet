@@ -10,7 +10,7 @@ export function RegisterStepDone({ onContinue }: { onContinue: () => void }) {
       <div>
         <h3 className="text-lg font-semibold text-foreground">Account created!</h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          Welcome to StiveBet. Your account is ready — make a deposit to start betting.
+          Welcome to StriveBet. Your account is ready — make a deposit to start betting.
         </p>
       </div>
       <Button onClick={onContinue} className="h-11 w-full text-base">

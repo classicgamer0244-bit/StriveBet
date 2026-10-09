@@ -61,7 +61,7 @@ async function main() {
   // up whenever DATABASE_URL isn't set in the terminal — never write there.
   if (/maxbet\.3pv3dcw\.mongodb\.net/i.test(url)) {
     throw new Error(
-      "That is the old maxbett.site database (from .env). Set DATABASE_URL to the new StiveBet database in this terminal first."
+      "That is the old maxbett.site database (from .env). Set DATABASE_URL to the new StriveBet database in this terminal first."
     );
   }
   if ((await ask('Create the superadmin in THIS database? Type "yes" to continue: ')).toLowerCase() !== "yes") {
@@ -78,7 +78,7 @@ async function main() {
       return;
     }
 
-    const displayName = (await ask("Display name (e.g. StiveBet HQ): ")) || "StiveBet HQ";
+    const displayName = (await ask("Display name (e.g. StriveBet HQ): ")) || "StriveBet HQ";
     const email = (await ask("Email: ")).toLowerCase();
     const rawPhone = (await ask("Phone, local format (used to log in, e.g. 0244123456): ")).replace(/\D/g, "");
     // The login form adds +233 itself and accepts at most 10 digits, so only a
@@ -121,7 +121,7 @@ async function main() {
     }
 
     console.log(`\nSuperadmin created: ${admin.displayName} (${admin.email}).`);
-    console.log("Log in on the site with that phone number and password, then use the StiveBet logo link to reach /superadmin.");
+    console.log("Log in on the site with that phone number and password, then use the StriveBet logo link to reach /superadmin.");
   } finally {
     await db.$disconnect();
   }

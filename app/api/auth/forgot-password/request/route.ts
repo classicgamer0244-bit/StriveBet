@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 
   try {
     const intlPhone = toArkeselNumber(user.phone, user.countryCode);
-    await sendSms(intlPhone, `Your StiveBet password reset code is ${code}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`);
+    await sendSms(intlPhone, `Your StriveBet password reset code is ${code}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`);
   } catch (err) {
     console.error("Failed to send password-reset SMS:", err);
   }

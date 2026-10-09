@@ -72,7 +72,7 @@ export async function creditSuccessfulDeposit(reference: string, gatewayRaw?: un
     if (user?.phone) {
       const intlPhone = toArkeselNumber(user.phone, (user as { countryCode?: string }).countryCode ?? "233");
       const amount = fromMinor(txn.amountMinor).toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      await sendSms(intlPhone, `StiveBet: Your deposit of GHS ${amount} was successful. Your balance has been updated. Thank you!`);
+      await sendSms(intlPhone, `StriveBet: Your deposit of GHS ${amount} was successful. Your balance has been updated. Thank you!`);
     }
   } catch { /* SMS failure must never break the deposit flow */ }
 

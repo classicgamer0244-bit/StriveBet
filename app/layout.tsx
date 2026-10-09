@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     template: `%s | ${BRAND_NAME}`,
   },
   description: DESCRIPTION,
-  keywords: ["sports betting", "live betting", "football betting", "Ghana betting", "online betting", "StiveBet", "bet online Ghana", "odds"],
+  keywords: ["sports betting", "live betting", "football betting", "Ghana betting", "online betting", "StriveBet", "bet online Ghana", "odds"],
   authors: [{ name: BRAND_NAME }],
   creator: BRAND_NAME,
   publisher: BRAND_NAME,

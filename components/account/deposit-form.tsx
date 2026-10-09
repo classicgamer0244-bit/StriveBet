@@ -485,7 +485,7 @@ export function DepositForm() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Your card details are entered on the secure payment window and never touch StiveBet.
+              Your card details are entered on the secure payment window and never touch StriveBet.
             </p>
           </TabsContent>
 

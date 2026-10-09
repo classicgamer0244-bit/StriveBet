@@ -61,7 +61,7 @@ export async function refundWithdrawal(transactionId: string, performedByAdminId
     if (account?.phone) {
       const intlPhone = toArkeselNumber(account.phone, (account as { countryCode?: string }).countryCode ?? "233");
       const amount = fromMinor(txn.amountMinor).toFixed(2);
-      await sendSms(intlPhone, `StiveBet: Your withdrawal of GHS ${amount} has been refunded. The amount has been returned to your balance.`);
+      await sendSms(intlPhone, `StriveBet: Your withdrawal of GHS ${amount} has been refunded. The amount has been returned to your balance.`);
     }
   } catch { /* SMS failure must never break the refund flow */ }
 

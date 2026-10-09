@@ -51,7 +51,7 @@ export function BookingSuccessModal({
       const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = objectUrl;
-      a.download = `stivebet-${info.code}.png`;
+      a.download = `strivebet-${info.code}.png`;
       a.click();
       URL.revokeObjectURL(objectUrl);
       toast.success("Image saved.");

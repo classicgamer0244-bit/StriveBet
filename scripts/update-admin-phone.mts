@@ -24,7 +24,7 @@ async function main() {
   const target = url.match(/@([^/?]+)\/([^?]*)/);
   console.log(`\nTarget database: ${target?.[1] ?? "?"} / ${target?.[2] || "(default)"}`);
   if (/maxbet\.3pv3dcw\.mongodb\.net/i.test(url)) {
-    throw new Error("That is the old maxbett.site database (from .env). Set DATABASE_URL to the new StiveBet database first.");
+    throw new Error("That is the old maxbett.site database (from .env). Set DATABASE_URL to the new StriveBet database first.");
   }
   if ((await ask('Change an admin phone in THIS database? Type "yes" to continue: ')).toLowerCase() !== "yes") {
     console.log("Cancelled — nothing written.");

@@ -74,7 +74,7 @@ export function AppSidebar({ compact }: { compact: boolean }) {
       )}
     >
       <div className={cn("flex h-16 shrink-0 items-center", compact ? "justify-center" : "justify-center px-5 xl:justify-start")}>
-        <Link href="/" aria-label="StiveBet home">
+        <Link href="/" aria-label="StriveBet home">
           {compact ? (
             <LogoMark className="size-9" />
           ) : (

@@ -1,4 +1,4 @@
-export const BRAND_NAME = "StiveBet";
+export const BRAND_NAME = "StriveBet";
 
 export interface NavItem {
   label: string;
@@ -17,7 +17,7 @@ export const PRIMARY_NAV: NavItem[] = [
   { label: "Livescore", href: "#", enabled: false },
   { label: "Results", href: "#", enabled: false },
   { label: "Promotions", href: "#", enabled: false },
-  { label: "Stive Loyalty", href: "#", enabled: false },
+  { label: "Strive Loyalty", href: "#", enabled: false },
   { label: "App", href: "#", enabled: false },
 ];
 

@@ -83,7 +83,7 @@
   --input: #D3DAE6;
   --ring: var(--primary-500);
 
-  /* Brand — StiveBet electric-blue scale built from #1F6BFF. --primary is what
+  /* Brand — StriveBet electric-blue scale built from #1F6BFF. --primary is what
      selected odds buttons, CTAs and active nav states use. */
   --primary-50: oklch(96% 0.018 262);
   --primary-100: oklch(91% 0.042 262);
@@ -113,7 +113,7 @@
   --live: oklch(63.7% 0.237 25.331);
   --live-foreground: oklch(0.985 0 0);
 
-  /* StiveBet chrome: deep navy surfaces + the logo's bolt yellow ("volt") for highlights.
+  /* StriveBet chrome: deep navy surfaces + the logo's bolt yellow ("volt") for highlights.
      Volt always carries dark text (--navy) — never white. */
   --navy: #0B1230;
   --navy-2: #131D45;
@@ -136,7 +136,7 @@
 }
 
 /* Dark theme — chosen by the player via the theme toggle and remembered in
-   localStorage (next-themes, key "stivebet-theme"). The navy chrome goes a
+   localStorage (next-themes, key "strivebet-theme"). The navy chrome goes a
    shade deeper so it still frames the (now dark) content canvas. */
 .dark {
   --background: #0E1531;

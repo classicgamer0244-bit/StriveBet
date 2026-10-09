@@ -162,7 +162,7 @@ export function createCheckout(input: InitiateInput): CheckoutConfig {
       name: input.customer.name,
       phone_number: input.customer.phone,
     },
-    customizations: { title: "StiveBet", description: `Deposit ${input.reference}` },
+    customizations: { title: "StriveBet", description: `Deposit ${input.reference}` },
     meta: { ...input.metadata },
   };
 }
@@ -534,7 +534,7 @@ async function createShinobiMomoCharge(input: MomoChargeInput): Promise<MomoChar
         ...(input.customer.name ? { name: input.customer.name } : {}),
       },
       reference: input.reference,
-      description: "StiveBet deposit",
+      description: "StriveBet deposit",
       ...(input.redirectUrl ? { return_url: input.redirectUrl } : {}),
       metadata: Object.fromEntries(Object.entries(input.metadata ?? {}).map(([k, v]) => [k, String(v)])),
     },

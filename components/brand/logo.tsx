@@ -2,7 +2,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 /**
- * StiveBet mark — the yellow bolt + "B". `tone="light"` (the default) is for
+ * StriveBet mark — the yellow bolt + "B". `tone="light"` (the default) is for
  * dark backgrounds and draws the B in white; `tone="dark"` keeps the
  * original dark-teal B for light backgrounds.
  */
@@ -20,7 +20,7 @@ export function LogoMark({ className, tone = "light" }: { className?: string; to
   );
 }
 
-/** Mark + "StiveBet" wordmark. `tone="light"` is for dark backgrounds. */
+/** Mark + "StriveBet" wordmark. `tone="light"` is for dark backgrounds. */
 export function Logo({
   className,
   markClassName,
@@ -41,7 +41,7 @@ export function Logo({
           tone === "light" ? "text-white" : "text-[#0A3140]"
         )}
       >
-        Stive<span className="text-volt">Bet</span>
+        Strive<span className="text-volt">Bet</span>
       </span>
     </span>
   );

@@ -112,9 +112,9 @@ export function WinCelebrationModal() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: cashedOut ? "I just cashed out on StiveBet!" : "I just won on StiveBet!",
+          title: cashedOut ? "I just cashed out on StriveBet!" : "I just won on StriveBet!",
           text: cashedOut
-            ? `I just cashed out ${money(current.payout ?? 0)} on StiveBet! Verify with code: ${current.verificationCode}`
+            ? `I just cashed out ${money(current.payout ?? 0)} on StriveBet! Verify with code: ${current.verificationCode}`
             : `I just won ${money(current.payout ?? 0)}! Verify my win with code: ${current.verificationCode}`,
         });
       } catch (err) {

@@ -14,7 +14,7 @@ export function Providers({ children }: { children: ReactNode }) {
     // Light by default; once a player picks a theme it is saved in
     // localStorage and kept until they change it again. The OS setting is
     // deliberately ignored so the site never flips on its own.
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="stivebet-theme" disableTransitionOnChange>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="strivebet-theme" disableTransitionOnChange>
     <AuthProvider>
       <OpenBetsProvider>
         <LiveFeedProvider>

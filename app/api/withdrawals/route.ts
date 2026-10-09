@@ -77,7 +77,7 @@ export async function POST(request: Request) {
       : null;
     const intlPhone = toArkeselNumber(account.phone, user?.countryCode ?? "233");
     const amount = fromMinor(amountMinor).toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    await sendSms(intlPhone, `StiveBet: Your withdrawal request of GHS ${amount} to ${parsed.data.phone} (${parsed.data.network}) has been received and is being processed.`);
+    await sendSms(intlPhone, `StriveBet: Your withdrawal request of GHS ${amount} to ${parsed.data.phone} (${parsed.data.network}) has been received and is being processed.`);
   } catch { /* SMS failure must never block the response */ }
 
   return NextResponse.json({ transaction: serializeTransaction(txn) }, { status: 201 });

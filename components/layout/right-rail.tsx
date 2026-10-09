@@ -21,7 +21,7 @@ function InstantRegistrationCard() {
         <span className="flex size-9 items-center justify-center rounded-xl bg-volt text-navy">
           <Gift className="size-4.5" />
         </span>
-        <h3 className="mt-3 text-base leading-tight font-extrabold">Join StiveBet in seconds</h3>
+        <h3 className="mt-3 text-base leading-tight font-extrabold">Join StriveBet in seconds</h3>
         <p className="mt-1 text-xs text-white/55">Register with your mobile number and start betting.</p>
         <div className="mt-3 flex h-10 overflow-hidden rounded-xl border border-white/10 bg-white/5">
           <span className="flex items-center border-r border-white/10 px-3 text-xs font-bold text-volt">+233</span>

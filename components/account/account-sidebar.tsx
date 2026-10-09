@@ -22,7 +22,7 @@ import { UserCard } from "./user-card";
 
 const ICONS: Record<string, LucideIcon> = {
   "My Account Info": User,
-  "Sporty Loyalty": Trophy,
+  "Strive Loyalty": Trophy,
   "Daily Streak": Flame,
   Deposit: Wallet,
   Withdraw: Banknote,

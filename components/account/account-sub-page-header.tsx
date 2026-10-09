@@ -14,7 +14,7 @@ const TITLES: Record<string, string> = {
   "/account/notifications": "Notifications",
   "/account/settings": "Account Settings",
   "/account/security": "Safety & Security",
-  "/account/loyalty": "Sporty Loyalty",
+  "/account/loyalty": "Strive Loyalty",
   "/account/support": "Customer Support",
 };
 

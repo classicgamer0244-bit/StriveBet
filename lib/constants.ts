@@ -23,7 +23,7 @@ export const PRIMARY_NAV: NavItem[] = [
 
 export const ACCOUNT_NAV: NavItem[] = [
   { label: "My Account Info", href: "/account", enabled: true },
-  { label: "Sporty Loyalty", href: "/account/loyalty", enabled: true },
+  { label: "Strive Loyalty", href: "/account/loyalty", enabled: true },
   { label: "Daily Streak", href: "/account/daily-streak", enabled: true },
   { label: "Deposit", href: "/account/deposit", enabled: true },
   { label: "Withdraw", href: "/account/withdraw", enabled: true },

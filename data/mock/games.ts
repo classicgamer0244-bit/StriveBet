@@ -1,7 +1,7 @@
 import type { Game } from "@/types";
 
 export const games: Game[] = [
-  { id: "sporty-hero", name: "Sporty Hero", category: "Mini Games" },
+  { id: "sporty-hero", name: "Strive Hero", category: "Mini Games" },
   { id: "spin-da-bottle", name: "Spin da' Bottle", category: "Mini Games" },
   { id: "red-black", name: "Red Black", category: "Mini Games" },
   { id: "lucky-numbers", name: "Lucky Numbers", category: "Mini Games" },

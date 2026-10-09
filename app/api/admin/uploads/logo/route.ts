@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/session";
 import { isCloudinaryConfigured, uploadImage } from "@/lib/cloudinary";
 
+import { makeLogoTransparent } from "@/lib/images/transparent-logo";
+
 const MAX_SIZE_BYTES = 500 * 1024;
 
 export async function POST(request: Request) {
@@ -29,8 +31,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const url = await uploadImage(buffer, file.name);
+    const rawBuffer = Buffer.from(await file.arrayBuffer());
+    const transparentBuffer = await makeLogoTransparent(rawBuffer);
+    const filename = file.name.replace(/\.[^.]+$/, ".png");
+    const url = await uploadImage(transparentBuffer, filename);
     return NextResponse.json({ url });
   } catch (err) {
     console.error("Logo upload failed:", err);

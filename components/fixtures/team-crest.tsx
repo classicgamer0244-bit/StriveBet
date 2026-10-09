@@ -5,7 +5,7 @@ import type { Team } from "@/types";
 import { cn } from "@/lib/utils";
 
 function proxyUrl(src: string): string {
-  return `/api/logo?src=${encodeURIComponent(src)}`;
+  return `/api/logo?src=${encodeURIComponent(src)}&t=2`;
 }
 
 export function TeamCrest({

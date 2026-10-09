@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
+import { makeLogoTransparent } from "@/lib/images/transparent-logo";
 
-const ALLOWED_HOSTS = ["file.ilotbet.com", "api.ilotbet.com", "media.api-sports.io", "res.cloudinary.com"];
+function isPrivateHost(hostname: string): boolean {
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "0.0.0.0") return true;
+  if (/^10\./.test(hostname)) return true;
+  if (/^192\.168\./.test(hostname)) return true;
+  if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)) return true;
+  if (hostname.endsWith(".internal") || hostname.endsWith(".local")) return true;
+  return false;
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -15,8 +23,12 @@ export async function GET(request: Request) {
     return new NextResponse(null, { status: 400 });
   }
 
-  if (!ALLOWED_HOSTS.includes(parsed.hostname)) {
-    console.error("[logo-proxy] blocked host:", parsed.hostname, "| full url:", src);
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return new NextResponse(null, { status: 400 });
+  }
+
+  if (isPrivateHost(parsed.hostname)) {
+    console.error("[logo-proxy] blocked private host:", parsed.hostname, "| full url:", src);
     return new NextResponse(null, { status: 403 });
   }
 
@@ -30,13 +42,13 @@ export async function GET(request: Request) {
       return new NextResponse(null, { status: 502 });
     }
 
-    const contentType = upstream.headers.get("content-type") ?? "image/png";
-    const body = await upstream.arrayBuffer();
+    const rawBuffer = Buffer.from(await upstream.arrayBuffer());
+    const transparentBuffer = await makeLogoTransparent(rawBuffer);
 
-    return new NextResponse(body, {
+    return new NextResponse(new Uint8Array(transparentBuffer), {
       headers: {
-        "Content-Type": contentType,
-        "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=604800, stale-while-revalidate=2592000",
       },
     });
   } catch (err) {

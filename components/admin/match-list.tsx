@@ -31,7 +31,7 @@ export function MatchList({
       {showCreate && (
         <div className="flex justify-end">
           <Button asChild className="gap-1.5">
-            <Link href="/admin/matches/new">
+            <Link href={`${basePath}/new`}>
               <Plus className="size-4" />
               Create match
             </Link>

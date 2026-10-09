@@ -3,7 +3,8 @@ import { requireAdmin } from "@/lib/auth/session";
 import { generateFictionalMatchup, isGroqConfigured } from "@/lib/groq";
 
 export async function POST() {
-  const admin = await requireAdmin("ADMIN");
+  // Any staff account can create matches (merchants and head office).
+  const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   if (!isGroqConfigured()) {

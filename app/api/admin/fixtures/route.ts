@@ -28,7 +28,8 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const admin = await requireAdmin("ADMIN");
+  // Merchants and head office can both create matches; the creator owns it.
+  const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (admin.status !== "ACTIVE") {
     return NextResponse.json({ error: "Your account isn't approved yet." }, { status: 403 });

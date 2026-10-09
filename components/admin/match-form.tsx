@@ -29,7 +29,7 @@ function defaultKickoffLocal(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function MatchForm() {
+export function MatchForm({ basePath = "/admin/matches" }: { basePath?: string }) {
   const router = useRouter();
   const sports = getSports();
 
@@ -135,7 +135,7 @@ export function MatchForm() {
         return;
       }
       toast.success("Match created — it goes live automatically at kick-off.");
-      router.push(`/admin/matches/${data.fixture.id}`);
+      router.push(`${basePath}/${data.fixture.id}`);
     } finally {
       setIsBusy(false);
     }

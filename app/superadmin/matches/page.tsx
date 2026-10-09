@@ -31,7 +31,6 @@ export default function SuperadminMatchesPage() {
             showOwner
             ownerName={(id) => items.find((f) => f.ownerAdminId === id)?.ownerName ?? "—"}
             basePath="/superadmin/matches"
-            showCreate={false}
           />
           {total > table.pageSize && (
             <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">

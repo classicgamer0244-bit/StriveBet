@@ -1,0 +1,777 @@
+// MaxBet backend schema — MongoDB via Prisma ORM v6 (Prisma 7 has no MongoDB
+// connector; see .agents/skills/prisma-mongodb-upgrade at the time this was
+// written). Classic v6 Mongo shape: url read directly in the datasource
+// block, no prisma.config.ts, `prisma db push` instead of `migrate dev`
+// (Mongo has no shadow-database migrations).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum AdminRole {
+  ADMIN
+  SUPERADMIN
+}
+
+enum AdminStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum FixtureStatus {
+  UPCOMING
+  LIVE
+  HALFTIME
+  FINISHED
+  CANCELLED
+}
+
+enum BetMode {
+  REAL
+  SIM
+}
+
+enum BetStatus {
+  OPEN
+  WON
+  LOST
+  VOID
+  /// Player cashed out before any leg's fixture kicked off — stake returned.
+  CASHED_OUT
+}
+
+enum TransactionType {
+  /// Real gateway deposits, superadmin manual balance credits, AND
+  /// superadmin earnings-settlement payouts (see .../credit routes and
+  /// .../reset-earnings) — every one of these lands as money the account
+  /// holder received from the platform, so they're all shown the same way
+  /// in that account's own transaction history.
+  DEPOSIT
+  WITHDRAWAL
+  /// Legacy only — no longer created by any route (superseded by DEPOSIT,
+  /// see above). Kept in the enum so historical rows written before that
+  /// change still read back without error.
+  ADJUSTMENT
+  /// A real-money stake, recorded the moment a bet is placed.
+  BET
+  /// A real-money payout, recorded the moment a bet settles WON.
+  WINNING
+  /// A stake returned without being a win — a superadmin reversing a failed
+  /// withdrawal, a bet settling VOID (all legs pushed), or a player cashing
+  /// a bet out early. `method` distinguishes which (see the three call sites:
+  /// .../withdrawals/[id]/refund, lib/settlement/settle-bets-for-fixtures.ts,
+  /// app/api/bets/[id]/cashout).
+  REFUND
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+/// Discriminator on Bet/Transaction — Mongo/Prisma has no polymorphic
+/// relation, so this says which collection `accountId` points into.
+enum AccountKind {
+  USER
+  ADMIN
+}
+
+// ---------------------------------------------------------------------------
+// Players
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  firstName    String
+  lastName     String
+  phone        String     @unique
+  countryCode  String
+  countryFlag  String
+  /// Not @unique: Mongo has no sparse/partial unique index in Prisma's
+  /// schema DSL, and a plain unique index on an optional field collides on
+  /// every row that lacks it — email is optional at signup, so two blank
+  /// emails would otherwise error as "already registered". Uniqueness for
+  /// rows that DO have an email is enforced by a manually-created partial
+  /// unique index directly in MongoDB (same pattern as
+  /// Transaction.gatewayTransactionId). Looked up with findFirst, not findUnique.
+  email        String?
+  passwordHash String
+  balanceMinor Int        @default(0)
+  currency     String     @default("GHS")
+  gender       Gender?
+  status       UserStatus @default(ACTIVE)
+  /// AdminAccount id of the merchant who referred this user, if any
+  referredById String?    @db.ObjectId
+  /// Successful deposits since the last withdrawal-refund reset — gates
+  /// withdrawal eligibility (needs >= 3). Nullable: accounts created before
+  /// this field existed default to 0 in application code, not here.
+  depositsSinceReset  Int?
+  /// Refunds since the last time the 8%-of-balance penalty was triggered —
+  /// resets to 0 (and sets penaltyDepositRequired) once it reaches 2.
+  refundsSincePenalty Int?
+  /// True once this account's 2nd refund (in the current cycle) has fired —
+  /// blocks withdrawal until a deposit >= 8% of balance lands.
+  penaltyDepositRequired Boolean?
+  /// Set to true the first time a bet placed by this user settles WON —
+  /// never reset. Gates the withdrawal eligibility banner: we only show it
+  /// once the user has actually won something.
+  hasWonBet    Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([referredById])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Admin / superadmin (merchant) accounts — kept as a separate collection
+// from User; fields genuinely differ and every existing dashboard is built
+// around this split.
+// ---------------------------------------------------------------------------
+
+model AdminAccount {
+  id               String      @id @default(auto()) @map("_id") @db.ObjectId
+  displayName      String
+  email            String      @unique
+  phone            String      @unique
+  passwordHash     String
+  /// Random 6-char code, e.g. "7XR4M2" — never derived from the name
+  referralCode     String      @unique
+  role             AdminRole
+  status           AdminStatus @default(PENDING)
+  createdByAdminId String?     @db.ObjectId
+  /// Running, resettable commission ledger — lifetime deposit totals are
+  /// derived separately from Transaction and are never cleared.
+  earningsMinor    Int         @default(0)
+  /// Admins/superadmins can also play — this is their own betting wallet,
+  /// entirely separate from earningsMinor (referral commission).
+  balanceMinor     Int         @default(0)
+  currency         String      @default("GHS")
+  /// Same withdrawal-eligibility tracking as User — admins/superadmins can
+  /// also deposit/stake/withdraw from their own balanceMinor wallet.
+  depositsSinceReset  Int?
+  refundsSincePenalty Int?
+  penaltyDepositRequired Boolean?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([role, status])
+  @@index([createdByAdminId])
+}
+
+// ---------------------------------------------------------------------------
+// Admin-simulated fixtures. Real (api-football) fixtures are fetched live
+// and are NEVER persisted here — see lib/api-football. Only matches an
+// admin creates by hand live in the database.
+// ---------------------------------------------------------------------------
+
+type SelectionEmbed {
+  /// nanoid()-generated at write time — never Mongo/Prisma auto-ids, so bet
+  /// legs keep a stable join key across process restarts.
+  id    String
+  label String
+  odds  Float
+}
+
+type MarketEmbed {
+  id         String
+  name       String
+  tab        String
+  info       String?
+  selections SelectionEmbed[]
+}
+
+type ScheduledScoreEventEmbed {
+  id         String
+  atMinute   Int
+  /// "home" | "away"
+  team       String
+  deltaGoals Int
+  applied    Boolean
+}
+
+model AdminFixture {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  ownerAdminId    String        @db.ObjectId
+  leagueName      String
+  sportSlug       String        @default("football")
+  kickoffAt       DateTime
+  status          FixtureStatus @default(UPCOMING)
+  homeTeamName    String
+  awayTeamName    String
+  /// Nullable in the DB (Mongo/Prisma necessity for documents written before
+  /// this field existed) — required for new matches at the zod layer only.
+  homeTeamLogoUrl String?
+  awayTeamLogoUrl String?
+  scoreHome       Int?
+  scoreAway       Int?
+  minute          String?
+  /// Built once at creation via buildMarketsForFixture() and frozen forever —
+  /// never rebuilt on read, or open bets' selectionId references would orphan.
+  markets         MarketEmbed[]
+  /// Epoch ms — wall-clock anchor the match-minute formula is derived from.
+  simKickoffTs    BigInt
+  /// Match-minutes advanced per real second.
+  compression     Float
+  /// Random 3-6, rolled once at kickoff — added to 90 for this match's actual
+  /// full-time minute, so not every match ends at exactly 90:00.
+  stoppageMinutes Int?
+  /// Random 3-6, rolled once at kickoff — added to 45 for this match's actual
+  /// half-time minute, mirroring stoppageMinutes for the first half.
+  firstHalfStoppageMinutes Int?
+  /// Epoch ms — set once when HALFTIME begins; second half's minute count
+  /// resumes from this anchor rather than simKickoffTs.
+  secondHalfKickoffTs BigInt?
+  /// Seed buildMarketsForFixture() used to build `markets` — nullable for
+  /// fixtures created before this field existed (they simply get no live
+  /// odds shifting, since overrideMarkets() needs a seed to preserve ids).
+  marketSeed      String?
+  scheduledEvents ScheduledScoreEventEmbed[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([status])
+  @@index([ownerAdminId])
+  @@index([kickoffAt])
+}
+
+// ---------------------------------------------------------------------------
+// Bets
+// ---------------------------------------------------------------------------
+
+type BetLegEmbed {
+  /// Either an AdminFixture ObjectId, or "af-<apiFootballFixtureId>" for a
+  /// real fixture — a frozen snapshot, not a relation, by design.
+  fixtureId      String
+  fixtureLabel   String
+  kickoffAt      DateTime?
+  marketId       String
+  marketName     String
+  /// Human-readable market name frozen at placement time, e.g. "Match Result"
+  /// for marketName "1X2" — see lib/markets/market-label.ts. Nullable: legs
+  /// written before this field existed fall back to marketDisplayName(marketName).
+  marketLabel    String?
+  selectionId    String
+  selectionLabel String
+  odds           Float
+  /// "won" | "lost" | "void" — filled in at settlement
+  result         String?
+  /// Short player-facing fixture reference frozen at placement time (the
+  /// same value shown throughout the site as "Game ID") — Fixture.gameId at
+  /// the time this leg was placed. Nullable: legs written before this field
+  /// existed simply have nothing to show.
+  gameId         String?
+  /// Final score, filled in at settlement alongside `result` — absent for
+  /// legs that never got a real score (cancelled fixture, or the bet was
+  /// cashed out before settling).
+  finalScoreHome Int?
+  finalScoreAway Int?
+  /// Halftime score, frozen at settlement exactly like finalScore* above, for
+  /// the four half-based markets (HT/FT, 1st/2nd Half Result, Half With Most
+  /// Goals). Stored on the leg because the only other copy lives in
+  /// IlotbetFixtureCache, which is disposable and pruned — and only OPEN bets
+  /// protect a row there, so a settled bet's own halftime evidence used to be
+  /// deleted out from under it. Without this, a half-market leg graded wrongly
+  /// could never be re-graded afterwards. Absent when the fixture never
+  /// reported a halftime score (those legs void rather than grade).
+  halftimeScoreHome Int?
+  halftimeScoreAway Int?
+}
+
+model Bet {
+  id                   String      @id @default(auto()) @map("_id") @db.ObjectId
+  /// Either a User id or an AdminAccount id — see accountKind.
+  accountId            String      @db.ObjectId
+  accountKind          AccountKind @default(USER)
+  referringAdminId     String?     @db.ObjectId
+  placedAt             DateTime    @default(now())
+  stakeMinor           BigInt
+  mode                 BetMode
+  totalOdds            Float
+  potentialPayoutMinor BigInt
+  status               BetStatus   @default(OPEN)
+  settledAt            DateTime?
+  payoutMinor          BigInt?
+  /// Set once the "you won!" celebration modal has been shown for this bet —
+  /// null means WON but not yet acknowledged by the player.
+  winNotifiedAt        DateTime?
+  /// Set if this bet was placed from a loaded booking slip.
+  bookingCode          String?
+  /// Generated only when a bet settles WON — shown in the win celebration
+  /// modal and the ticket page, lets support staff verify a payout claim.
+  verificationCode     String?
+  /// Set once the player cashes this bet out (status CASHED_OUT).
+  cashedOutAt          DateTime?
+  /// Set when the player clears this bet from their own history view. The row
+  /// is KEPT, never deleted: a bet is the accounting record for both a stake
+  /// debit and a payout credit, so destroying it makes the account's balance
+  /// unexplainable forever. That is not hypothetical — a hard delete here is
+  /// exactly why one production account appeared GHS 1,000 short (a lost bet
+  /// deleted from history, leaving its debit with nothing to account for it),
+  /// and any reconciler working from bet records would have "repaid" money
+  /// that was never owed.
+  hiddenAt             DateTime?
+  /// Set by the overdue sweep (lib/settlement/overdue.ts) when a bet is still
+  /// OPEN well past every leg's kickoff, i.e. a fixture we cannot resolve.
+  /// Cleared when the bet finally settles. Drives the superadmin review queue.
+  reviewFlaggedAt      DateTime?
+  /// Why it was flagged: "fixture_unresolved" | "reconciler_drift" |
+  /// "regrade_would_reduce".
+  reviewReason         String?
+  /// Audit trail for settlements that did NOT come from the normal path:
+  /// "auto_void_overdue" | "reconciler" | "backfill_regrade". Null for the
+  /// overwhelming majority — an ordinary settlement leaves this unset.
+  settlementSource     String?
+  legs                 BetLegEmbed[]
+
+  @@index([accountId])
+  @@index([status])
+  @@index([placedAt])
+  @@index([bookingCode])
+  @@index([verificationCode])
+  @@index([reviewFlaggedAt])
+  /// settleBetsForFixtures() queries `legs: { some: { fixtureId: { in } } }`
+  /// on every detected FT — unindexed that's a full collection scan.
+  @@index([legs.fixtureId])
+}
+
+// ---------------------------------------------------------------------------
+// Booking slips — "book & save" a set of selections under a short code,
+// loadable (at current odds) on any device, no login required to save.
+// ---------------------------------------------------------------------------
+
+type BookingSelectionEmbed {
+  fixtureId      String
+  fixtureLabel   String
+  marketId       String
+  marketName     String
+  selectionId    String
+  selectionLabel String
+  oddsAtBooking  Float
+}
+
+model BookingSlip {
+  id         String                  @id @default(auto()) @map("_id") @db.ObjectId
+  code       String                  @unique
+  selections BookingSelectionEmbed[]
+  /// sha1 of the sorted "fixtureId:marketId:selectionId" triples — lets a
+  /// re-booking of the exact same, still-unchanged selections reuse this
+  /// same code/slip instead of minting a new one every click. Nullable:
+  /// slips saved before this field existed simply never match a lookup.
+  selectionsHash String?
+  createdAt  DateTime                @default(now())
+  expiresAt  DateTime
+
+  @@index([selectionsHash])
+}
+
+// ---------------------------------------------------------------------------
+// Transactions (deposits via BulkClix, withdrawals simulated)
+// ---------------------------------------------------------------------------
+
+model Transaction {
+  id                        String            @id @default(auto()) @map("_id") @db.ObjectId
+  /// Either a User id or an AdminAccount id — see accountKind.
+  accountId                 String            @db.ObjectId
+  accountKind               AccountKind       @default(USER)
+  type                      TransactionType
+  status                    TransactionStatus @default(PENDING)
+  amountMinor               Int
+  /// e.g. "MTN Mobile Money", "Vodafone Cash", "Bank Transfer"
+  method                    String
+  /// Freely entered at transaction time — not necessarily the account phone.
+  phone                     String
+  network                   String?
+  /// Our own internally-generated ref for both deposits and withdrawals —
+  /// what creditSuccessfulDeposit()'s atomic PENDING-guarded update keys on.
+  reference                 String            @unique
+  /// Flutterwave's numeric transaction id — deposits only, and only once a
+  /// charge has actually completed.
+  ///
+  /// No longer a join key. Flutterwave accepts an arbitrary `tx_ref`, so our
+  /// own `reference` IS the gateway reference and incoming callbacks join on
+  /// that directly. (Under BulkClix this held a separately-minted
+  /// digits-and-dashes id, because their ids could not carry our `dep_`
+  /// prefix.) It is kept purely for support lookups against Flutterwave, and
+  /// is therefore absent on every PENDING row — the pending-deposit sweep
+  /// filters on the `dep_` reference prefix instead of on this field.
+  ///
+  /// Not @unique: Mongo has no sparse/partial unique index in Prisma's schema
+  /// DSL, and a plain unique index on an optional field collides on every row
+  /// that lacks it (most rows — withdrawals, manual credits). Looked up with
+  /// findFirst, not findUnique.
+  ///
+  /// @map keeps the underlying Mongo key from the NaloPay era, so no data
+  /// migration is needed and historical deposits stay readable.
+  gatewayTransactionId      String?           @map("nalopayOrderId")
+  referringAdminId          String?           @db.ObjectId
+  adminCommissionMinor      Int?
+  superadminCommissionMinor Int?
+  /// Raw gateway payload snapshot, for audit and support. Also where
+  /// the full Flutterwave verify envelope is preserved. @map for the same
+  /// history-preserving reason as gatewayTransactionId above.
+  gatewayRaw                Json?             @map("nalopayRaw")
+  /// Which superadmin performed this action — set on superadmin-initiated
+  /// DEPOSIT (manual balance credit or earnings settlement) and REFUND
+  /// (withdrawal reversal) rows; unset on real gateway deposits and
+  /// player-initiated rows (BET, WINNING, cashout REFUND).
+  performedByAdminId        String?           @db.ObjectId
+  /// Optional note — same rows as performedByAdminId above.
+  note                      String?
+  createdAt                 DateTime          @default(now())
+  updatedAt                 DateTime          @updatedAt
+
+  @@index([accountId])
+  @@index([type, status])
+  @@index([type, status, createdAt])
+  @@index([referringAdminId])
+  @@index([gatewayTransactionId])
+}
+
+// ---------------------------------------------------------------------------
+// Password-reset OTPs — short-lived, one per phone, replaced on re-request.
+// ---------------------------------------------------------------------------
+
+model PasswordResetOtp {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  phone     String   @unique
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Platform-wide, superadmin-editable settings — singleton document.
+// ---------------------------------------------------------------------------
+
+model PlatformSettings {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  depositsEnabled       Boolean  @default(true)
+  minDepositAmountMinor Int      @default(30400)
+  /// Superadmin "clear totals" marker for the overview dashboard: deposits
+  /// created before this instant are excluded from the deposit-volume figures.
+  ///
+  /// A cutoff rather than a deletion, deliberately. The transaction log is the
+  /// permanent record of real money and must never be destroyed to tidy up a
+  /// dashboard — every row stays queryable, individual histories and balances
+  /// are untouched, and clearing is undone by unsetting this field.
+  depositsResetAt       DateTime?
+  /// When the superadmin last zeroed their own earnings ledger. Informational,
+  /// so the settings page can show what was cleared and when.
+  earningsResetAt       DateTime?
+  updatedAt             DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// api-football mirror. Real fixtures used to be fetched from api-football on
+// every request behind Next's fetch Data Cache, which is per-instance and
+// unshared — so upstream request volume scaled with USER count (every
+// connected player's live-bets stream polled api-football on its own) and
+// every cache-staleness boundary caused a thundering herd of duplicate
+// refetches. This collection is the one shared cache: every read in the app
+// goes through it, never through api-football directly, and the upstream
+// request RATE becomes a pure function of wall-clock time (see
+// lib/api-football/sync/*), not of how many users are online. Every row here
+// is disposable — the whole collection can be dropped and it rebuilds itself
+// from api-football within one sync cycle.
+// ---------------------------------------------------------------------------
+
+model ApiFixtureCache {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  /// api-football's numeric fixture id — the natural key. Our "af-<n>" form
+  /// (lib/fixture-id.ts) is derived at the edges and never stored here, so
+  /// this collection stays a faithful mirror of upstream rather than a fork
+  /// of our own id scheme.
+  apiFixtureId  Int      @unique
+  /// Raw api-football short code ("NS","1H","HT","FT","PST","AWD",…) stored
+  /// VERBATIM, never pre-mapped into our FixtureStatus. A fix to
+  /// lib/api-football/status.ts's mapping then applies retroactively to
+  /// every already-cached row with no re-sync needed.
+  statusShort   String
+  statusLong    String?
+  /// Minutes played, straight from upstream. Null pre-kickoff and at FT.
+  elapsed       Int?
+  kickoffAt     DateTime
+  leagueId      Int
+  leagueName    String
+  leagueLogo    String?
+  leagueCountry String?
+  homeTeamId    Int
+  homeTeamName  String
+  homeTeamLogo  String?
+  awayTeamId    Int
+  awayTeamName  String
+  awayTeamLogo  String?
+  goalsHome     Int?
+  goalsAway     Int?
+
+  /// { v: 1, markets: Market[] } — the ONE copy of this fixture's prices.
+  /// List pages and the detail page both read from here, so a fixture card
+  /// and its market page can never disagree (the bug this replaces: list
+  /// pages built seeded-random odds while the detail page separately
+  /// overlaid real odds on the same baseline — two sources, two answers).
+  markets       Json?
+  /// { v: 1, markets: Market[] } — the subset of markets a LIST row actually
+  /// renders (1X2 + Total 0.5-4.5), written in the same pass from the same
+  /// array as `markets` — a projection, never a second source of truth. Lets
+  /// list queries select away the full markets blob.
+  listMarkets   Json?
+  /// markets.length — the "+N markets" affordance still needs a count even
+  /// when a query only selected listMarkets.
+  marketCount   Int?
+  /// "rng" | "prematch" | "live" — which sync last priced this fixture.
+  oddsSource    String?
+  oddsUpdatedAt DateTime?
+  /// /odds/live per-fixture flags. stopped/blocked mean the bookmaker has
+  /// pulled prices mid-incident — selections get marked suspended rather
+  /// than accept a stake at a price nobody will honour.
+  oddsStopped   Boolean?
+  oddsBlocked   Boolean?
+
+  /// When this row's FIXTURE FACTS (status/score/elapsed) were last written.
+  /// Deliberately separate from oddsUpdatedAt: status refreshes every ~25s,
+  /// prematch odds every few hours — conflating the two clocks would either
+  /// burn quota refreshing odds too often or serve stale scores too long.
+  fetchedAt     DateTime
+  /// "live" | "date" | "ids" — which sweep wrote this row last. Diagnostics only.
+  fetchedBy     String?
+
+  @@index([statusShort, kickoffAt])
+  @@index([kickoffAt])
+  @@index([leagueId, kickoffAt])
+  @@index([oddsUpdatedAt])
+}
+
+/// DB-backed single-flight lock so exactly one process (of however many
+/// serverless instances are running) refreshes a given piece of
+/// api-football data at a time, and everyone else reads the cache. Same
+/// intent as the admin-simulation tick's module-level `lastTickAt` throttle
+/// (lib/simulation/tick.ts), but held in Mongo so it holds ACROSS
+/// instances — a module variable only throttles the one instance that
+/// happens to own it.
+model SyncLock {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  /// Stable job name, e.g. "af:fixtures:live" — see lib/api-football/sync/jobs.ts.
+  key            String    @unique
+  /// When the job last COMPLETED. This is both the staleness clock and,
+  /// because the compare-and-set filters on it, the freshness check.
+  lastRunAt      DateTime
+  /// Non-null while a run is in flight — also doubles as crash recovery: a
+  /// lease that expired belongs to an instance the platform already killed.
+  leaseUntil     DateTime?
+  runCount       Int       @default(0)
+  lastDurationMs Int?
+  lastError      String?
+  updatedAt      DateTime  @updatedAt
+}
+
+/// Per-fixture settlement bookkeeping: the authoritative resolver's attempt
+/// counter and the overdue flag / auto-void clock.
+///
+/// Deliberately its own collection rather than columns on IlotbetFixtureCache.
+/// That cache is documented as disposable and is actively pruned, and — the
+/// decisive reason — a fixture we have never successfully fetched has NO row
+/// there at all, which is precisely the case this table exists to track. It
+/// also covers admin and legacy fixture ids, which that cache never holds.
+///
+/// The attempt counter specifically must be persisted, not in-memory: ilotbet
+/// returns "not found" forever for a purged match id, so without a durable
+/// count the resolver would burn its whole per-run budget re-fetching dead
+/// fixtures on every instance. An in-process guard would be per-instance and
+/// reset on every cold start — the exact failure mode lib/sync/lock.ts's
+/// doc comment describes.
+model FixtureSettlementState {
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  /// Our own fixture id: "sr:match:…" (ilotbet), "af-…" (legacy), or a raw
+  /// AdminFixture ObjectId.
+  fixtureId        String    @unique
+  /// Best known kickoff: leg.kickoffAt ?? cache scheduledTime ?? bet.placedAt.
+  kickoffAt        DateTime?
+  resolveAttempts  Int       @default(0)
+  lastAttemptAt    DateTime?
+  /// "resolved" | "not_found" | "error" | "skipped_paced"
+  lastOutcome      String?
+  lastError        String?
+  /// Set when the fixture passed the review threshold with no result.
+  flaggedOverdueAt DateTime?
+  /// Set when its bets were auto-voided as unresolvable. Third-party fixtures
+  /// only — admin fixtures are force-completed from our own data instead,
+  /// never voided (we own their result, so "unknown" is impossible).
+  autoVoidedAt     DateTime?
+  updatedAt        DateTime  @updatedAt
+
+  @@index([lastAttemptAt])
+  @@index([kickoffAt])
+}
+
+/// Singleton mirror of api-football's rate-limit response headers. Stored
+/// rather than held in memory for the same reason as SyncLock: one instance
+/// seeing "0 remaining" has to stop every OTHER instance too.
+model ApiFootballQuota {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  /// Always "default" — unique so the bootstrap upsert is race-safe.
+  key               String    @unique
+  /// x-ratelimit-requests-limit / -remaining — the daily plan quota.
+  dailyLimit        Int?
+  dailyRemaining    Int?
+  /// X-RateLimit-Limit / -Remaining — the per-minute burst window.
+  minuteLimit       Int?
+  minuteRemaining   Int?
+  observedAt        DateTime?
+  /// Set on a 429 or a populated `errors` body. Every sync short-circuits
+  /// until this passes — reads keep serving the last good cache, which is
+  /// the point: a throttled upstream must not empty the site.
+  backoffUntil      DateTime?
+  consecutiveErrors Int       @default(0)
+  /// Our own count, so a plan that stops sending headers still can't run
+  /// away — reset whenever requestsDayKey rolls over to a new UTC day.
+  requestsToday     Int       @default(0)
+  /// "2026-07-29" (UTC) — the day requestsToday belongs to.
+  requestsDayKey    String?
+  /// Global pacing gate — no request may fire before this instant, claimed
+  /// via an atomic compare-and-set (lib/api-football/quota.ts's
+  /// reserveRequestSlot()) so two near-simultaneous sync jobs (e.g. every
+  /// SyncLock starting at epoch 0 on cold start, making every job
+  /// simultaneously "due" on the very first request) serialize through one
+  /// spacing schedule instead of bursting together. Spacing is derived from
+  /// the last-OBSERVED minuteLimit header, not a guess at the plan tier.
+  nextRequestAt     DateTime?
+}
+
+// ---------------------------------------------------------------------------
+// ilotbet mirror — replaces api-football as the real-fixture data source.
+// Same "one shared cache, upstream cost is a function of wall-clock time not
+// user count" principle as ApiFixtureCache above; see lib/ilotbet/sync/*.
+// ApiFixtureCache/ApiFootballQuota/SyncLock stay alongside this deliberately
+// — a handful of OPEN bets still reference api-football fixtures ("af-…")
+// and need that integration to keep resolving live state until they settle.
+// See app/api/superadmin/api-football/status/route.ts's legacyOpenBets.
+// ---------------------------------------------------------------------------
+
+model IlotbetFixtureCache {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  /// ilotbet's own match id ("sr:match:72180088") — already globally unique,
+  /// used directly as our fixture id (lib/ilotbet/fixture-id.ts) with no
+  /// wrapping, unlike api-football's numeric id which needed an "af-" prefix.
+  matchId         String    @unique
+  /// A short numeric id ilotbet also returns per match — used only for the
+  /// player-facing "Game ID" display; matchId remains the real join key.
+  numericId       Int?
+  /// Raw eventStatus string ("not_started","live",…) stored VERBATIM, never
+  /// pre-mapped — same reasoning as ApiFixtureCache.statusShort: a fix to
+  /// lib/ilotbet/status.ts's mapping then applies retroactively to every
+  /// already-cached row with no re-sync needed.
+  eventStatus     String
+  periodDesc      String?
+  /// Seconds elapsed since kickoff, per ilotbet's `takeUpTime` — inferred
+  /// (from two real observations during planning) to NOT reset at halftime;
+  /// flagged in the plan as worth confirming further once a match is watched
+  /// through a real halftime.
+  takeUpTime      Int?
+  scheduledTime   DateTime
+  categoryId      String?
+  categoryName    String
+  tournamentId    String?
+  tournamentName  String
+  tournamentIcon  String?
+  homeName        String
+  homeLogo        String?
+  awayName        String
+  awayLogo        String?
+  homeScore       Int?
+  awayScore       Int?
+  /// Parsed from ilotbet's `periodScoresList` (period 1 = first half) —
+  /// captured on every sync while the match is still live/in-progress, since
+  /// this isn't reliably re-fetchable once the match finishes and drops out
+  /// of the live feed. Needed to settle "Half Time / Full Time" bets
+  /// correctly instead of always voiding them (see lib/settlement/resolve-leg.ts).
+  halftimeHomeScore Int?
+  halftimeAwayScore Int?
+  /// ilotbet's Sportradar sport id ("sr:sport:1" football, "sr:sport:2"
+  /// basketball, …) — see lib/ilotbet/sports.ts. Absent on rows written before
+  /// multi-sport support, all of which are football; every read treats a
+  /// missing value as football.
+  sportId         String?
+  /// Score at the end of regulation time (ice hockey periods 1-3), excluding
+  /// overtime and shootout — the only correct basis for settling "Regular
+  /// Time" markets. Written only once periods 1-3 are known to be complete
+  /// (see lib/ilotbet/sync/raw-to-facts.ts); left unset otherwise, which voids
+  /// those legs rather than guessing.
+  regulationHomeScore Int?
+  regulationAwayScore Int?
+
+  /// { v: 1, markets: Market[] } — same envelope/one-copy principle as
+  /// ApiFixtureCache.markets: list pages and the detail page read the same
+  /// bytes, so they can't disagree.
+  markets         Json?
+  /// { v: 1, markets: Market[] } — the subset of markets a LIST row actually
+  /// renders, same projection idea as ApiFixtureCache.listMarkets.
+  listMarkets     Json?
+  marketCount     Int?
+  /// "list" | "detail" — which endpoint last supplied `markets`. A fixture
+  /// opened on its own page gets the far richer ~80-market single-match
+  /// response; list rows otherwise carry the ~25-market set the daily/live
+  /// sync already fetched for free.
+  marketsSource   String?
+  /// When the on-demand single-match endpoint last refreshed this row's
+  /// markets — separate from `fetchedAt` (facts), matching the api-football
+  /// oddsUpdatedAt/fetchedAt split for the same reason (different refresh
+  /// cadences shouldn't share one clock).
+  detailFetchedAt DateTime?
+
+  /// When this row's FACTS (status/score/period) were last written.
+  fetchedAt       DateTime
+  /// "daily" | "live" | "detail" — which sync wrote this row last. Diagnostics only.
+  fetchedBy       String?
+
+  @@index([eventStatus, scheduledTime])
+  @@index([scheduledTime])
+  @@index([tournamentId, scheduledTime])
+  @@index([detailFetchedAt])
+}
+
+/// Singleton pacing/backoff state for the ilotbet integration — simpler than
+/// ApiFootballQuota since ilotbet exposes no rate-limit headers at all; the
+/// only lever available is a self-imposed fixed interval (see
+/// lib/ilotbet/client.ts's reserveIlotbetSlot()).
+model IlotbetSyncState {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  /// Always "default" — unique so the bootstrap upsert is race-safe.
+  key               String    @unique
+  /// Global pacing gate, same atomic compare-and-set shape as
+  /// ApiFootballQuota.nextRequestAt.
+  nextRequestAt     DateTime?
+  backoffUntil      DateTime?
+  consecutiveErrors Int       @default(0)
+  /// Why the most recent request failed, e.g. "HTTP 403" or "code 500: ...".
+  /// Persisted, not just logged: the integration can fail from one deployment
+  /// (a blocked egress IP, a geo-restriction) while working perfectly from a
+  /// developer's machine, and serverless logs are the one place you can't
+  /// easily correlate that. Without this, "in backoff" is all anyone can see
+  /// and the actual cause is invisible.
+  lastError         String?
+  lastErrorAt       DateTime?
+}

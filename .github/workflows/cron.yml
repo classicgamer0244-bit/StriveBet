@@ -1,0 +1,35 @@
+name: Backstop cron jobs
+
+# Vercel's Hobby plan only fires cron jobs roughly once a day, but
+# vercel.json schedules settlement/sync/sweeps every 1-10 minutes. The app
+# also self-triggers these jobs on real page traffic (see lib/sync/lock.ts),
+# so this workflow is a backstop for low-traffic periods, not the only
+# thing keeping the site alive. GitHub Actions schedules aren't reliable
+# below ~5 minutes, so everything runs on the same 5-minute cadence here
+# even though vercel.json asks for some jobs more often.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit cron endpoints
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -e
+          for path in \
+            "/api/cron/settle-sweep" \
+            "/api/cron/tick-simulations" \
+            "/api/cron/sync-ilotbet" \
+            "/api/cron/sweep-pending-deposits" \
+            "/api/cron/reconcile-deposits"; do
+            echo "Calling $path"
+            curl -sf -o /dev/null -w "  -> %{http_code}\n" \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              "$APP_URL$path" || echo "  -> FAILED"
+          done

@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "maxbet-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "dev-no-other-sport-sync",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set ILOTBET_OTHER_SPORTS_SYNC=off&& npm run dev"],
+      "port": 3000
+    }
+  ]
+}

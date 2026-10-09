@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    { "path": "/api/cron/settle-sweep", "schedule": "*/2 * * * *" },
+    { "path": "/api/cron/tick-simulations", "schedule": "* * * * *" },
+    { "path": "/api/cron/sync-ilotbet", "schedule": "* * * * *" },
+    { "path": "/api/cron/sweep-pending-deposits", "schedule": "*/2 * * * *" },
+    { "path": "/api/cron/reconcile-deposits", "schedule": "*/10 * * * *" }
+  ],
+  "functions": {
+    "app/api/realtime/**/*.ts": { "memory": 512 }
+  }
+}

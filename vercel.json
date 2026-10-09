@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
   "crons": [
     { "path": "/api/cron/settle-sweep", "schedule": "*/2 * * * *" },
     { "path": "/api/cron/tick-simulations", "schedule": "* * * * *" },
